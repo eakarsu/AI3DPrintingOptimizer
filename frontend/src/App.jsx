@@ -5,6 +5,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FeaturePage from './pages/FeaturePage';
+import Analytics from './pages/Analytics';
+import AIPrintingTools from './pages/AIPrintingTools';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -27,6 +29,8 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="ai-printing-tools" element={<AIPrintingTools />} />
           <Route path=":feature" element={<FeaturePage />} />
         </Route>
       </Routes>

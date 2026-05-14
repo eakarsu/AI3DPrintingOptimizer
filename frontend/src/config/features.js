@@ -9,6 +9,7 @@ export const FEATURES = [
     color: '#8b5cf6',
     apiPath: '/print-parameters',
     aiEndpoint: '/print-parameters/ai/optimize',
+    aiResultKey: 'suggested_parameters',
     columns: [
       { key: 'material_type', label: 'Material' },
       { key: 'geometry_type', label: 'Geometry' },
@@ -45,6 +46,7 @@ export const FEATURES = [
     color: '#ef4444',
     apiPath: '/failure-predictions',
     aiEndpoint: '/failure-predictions/ai/predict',
+    aiResultKey: 'prediction',
     columns: [
       { key: 'print_name', label: 'Print Name' },
       { key: 'material_type', label: 'Material' },
@@ -84,6 +86,7 @@ export const FEATURES = [
     color: '#10b981',
     apiPath: '/material-selections',
     aiEndpoint: '/material-selections/ai/recommend',
+    aiResultKey: 'recommendation',
     columns: [
       { key: 'project_name', label: 'Project' },
       { key: 'application', label: 'Application' },
@@ -122,6 +125,7 @@ export const FEATURES = [
     color: '#f59e0b',
     apiPath: '/build-time-estimates',
     aiEndpoint: '/build-time-estimates/ai/estimate',
+    aiResultKey: 'estimate',
     columns: [
       { key: 'model_name', label: 'Model' },
       { key: 'material_type', label: 'Material' },
@@ -163,6 +167,7 @@ export const FEATURES = [
     color: '#06b6d4',
     apiPath: '/quality-scores',
     aiEndpoint: '/quality-scores/ai/analyze',
+    aiResultKey: 'analysis',
     columns: [
       { key: 'print_name', label: 'Print Name' },
       { key: 'material_type', label: 'Material' },
