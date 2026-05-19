@@ -9,6 +9,8 @@ async function seed() {
 
     // Drop tables if exist
     await client.query(`
+      DROP TABLE IF EXISTS ai_results CASCADE;
+      DROP TABLE IF EXISTS maintenance_forecasts CASCADE;
       DROP TABLE IF EXISTS maintenance_logs CASCADE;
       DROP TABLE IF EXISTS print_profiles CASCADE;
       DROP TABLE IF EXISTS printers CASCADE;
@@ -42,8 +44,36 @@ async function seed() {
         print_speed INTEGER,
         infill_density INTEGER,
         support_enabled BOOLEAN DEFAULT false,
+        ai_result JSONB,
+        ai_model_used VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE ai_results (
+        id SERIAL PRIMARY KEY,
+        endpoint VARCHAR(255) NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        input_data JSONB NOT NULL,
+        raw_response TEXT,
+        parsed_result JSONB,
+        model_used VARCHAR(255),
+        tokens_used INTEGER,
+        success BOOLEAN DEFAULT true,
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE maintenance_forecasts (
+        id SERIAL PRIMARY KEY,
+        printer_name VARCHAR(255) NOT NULL,
+        printer_id INTEGER,
+        forecast_result JSONB,
+        ai_model_used VARCHAR(255),
+        next_maintenance_predicted DATE,
+        estimated_cost DECIMAL(8,2),
+        urgency VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE failure_predictions (
@@ -58,6 +88,8 @@ async function seed() {
         risk_level VARCHAR(50),
         failure_type VARCHAR(255),
         notes TEXT,
+        prediction_result JSONB,
+        ai_model_used VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -73,6 +105,8 @@ async function seed() {
         recommended_material VARCHAR(100),
         budget_level VARCHAR(50),
         notes TEXT,
+        ai_result JSONB,
+        ai_model_used VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -89,6 +123,8 @@ async function seed() {
         material_type VARCHAR(100),
         estimated_hours DECIMAL(8,2),
         complexity VARCHAR(50),
+        ai_result JSONB,
+        ai_model_used VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -105,6 +141,8 @@ async function seed() {
         overall_score DECIMAL(4,2),
         material_type VARCHAR(100),
         notes TEXT,
+        ai_result JSONB,
+        ai_model_used VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -114,11 +152,13 @@ async function seed() {
         job_name VARCHAR(255) NOT NULL,
         printer_name VARCHAR(255),
         material_type VARCHAR(100),
-        status VARCHAR(50) DEFAULT 'Queued',
+        status VARCHAR(50) DEFAULT 'queued',
         priority VARCHAR(50) DEFAULT 'Normal',
         estimated_time DECIMAL(8,2),
+        material_weight_used_g DECIMAL(8,2),
         file_name VARCHAR(255),
         notes TEXT,
+        ai_analysis JSONB,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );

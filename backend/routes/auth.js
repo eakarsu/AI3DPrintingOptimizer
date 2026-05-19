@@ -3,10 +3,19 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const { body, validationResult } = require('express-validator');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+    body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  ],
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
   try {
     const { email, password } = req.body;
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -27,14 +36,9 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  }
+);
 
-// Get default credentials
-router.get('/defaults', (req, res) => {
-  res.json({
-    email: process.env.DEFAULT_EMAIL,
-    password: process.env.DEFAULT_PASSWORD
-  });
-});
+// NOTE: /defaults endpoint removed for security — never expose credentials via API
 
 module.exports = router;
