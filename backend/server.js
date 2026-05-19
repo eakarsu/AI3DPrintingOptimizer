@@ -76,3 +76,6 @@ app.use('/api/gap-filament-auto-reorder-when-stock', require('./routes/gap_filam
 app.use('/api/gap-notifications-subsystem-app-email', require('./routes/gap_notifications_subsystem_app_email'));
 app.use('/api/gap-outbound-webhooks', require('./routes/gap_outbound_webhooks'));
 app.use('/api/gap-multi-tenant-customer-separation', require('./routes/gap_multi_tenant_customer_separation'));
+
+// Custom Views (synthesized data for visualization + non-viz views)
+app.use('/api/custom-views', require('./routes/customViews'));

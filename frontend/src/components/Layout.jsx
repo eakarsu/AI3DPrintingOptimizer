@@ -54,6 +54,16 @@ export default function Layout() {
           <span className="badge badge-ai">AI</span>
         </div>
 
+        <div
+          className={`sidebar-link ${location.pathname === '/custom-views' ? 'active' : ''}`}
+          onClick={() => navigate('/custom-views')}
+          data-testid="sidebar-custom-views"
+          style={{ margin: '0 12px' }}
+        >
+          <span className="icon">&#x1F5A8;</span>
+          Farm Views
+        </div>
+
         <div className="sidebar-section">
           <div className="sidebar-section-title">AI Features</div>
           {aiFeatures.map((f) => (
