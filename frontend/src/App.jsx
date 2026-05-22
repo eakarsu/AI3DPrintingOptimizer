@@ -10,6 +10,11 @@ import AIPrintingTools from './pages/AIPrintingTools';
 import CustomViewsPage from './pages/CustomViewsPage';
 import Layout from './components/Layout';
 
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" />;
@@ -20,6 +25,10 @@ export default function App() {
     <>
       <ToastContainer position="top-right" autoClose={3000} theme="dark" />
       <Routes>
+        <Route path="/insights/timeline" element={<TimelineView />} />
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
         <Route path="/login" element={<Login />} />
         <Route
           path="/"

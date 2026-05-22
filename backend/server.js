@@ -43,6 +43,7 @@ app.use('/api/printers', require('./routes/printers'));
 app.use('/api/print-profiles', require('./routes/printProfiles'));
 app.use('/api/maintenance-logs', require('./routes/maintenanceLogs'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/powder-reuse-plan', require('./routes/powderReusePlan'));
 
 // AI routes (with stricter AI rate limiting)
 app.use('/api/ai', aiRateLimiter, require('./routes/aiRoutes'));

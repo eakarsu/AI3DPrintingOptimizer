@@ -1,5 +1,33 @@
 export const FEATURES = [
   {
+    key: 'powder-reuse-plan',
+    name: 'Powder Reuse Plan',
+    shortName: 'Powder Reuse',
+    description: 'Track powder lot reuse cycles, virgin blend percentage, moisture, and tensile risk before release.',
+    icon: '♻️',
+    isAI: false,
+    color: '#0d9488',
+    apiPath: '/powder-reuse-plan',
+    columns: [
+      { key: 'lot_id', label: 'Lot' },
+      { key: 'material', label: 'Material' },
+      { key: 'reuse_cycle', label: 'Reuse Cycle' },
+      { key: 'virgin_blend_pct', label: 'Virgin %' },
+      { key: 'moisture_ppm', label: 'Moisture ppm' },
+      { key: 'tensile_risk', label: 'Tensile Risk', type: 'risk' },
+      { key: 'status', label: 'Status', type: 'status' },
+    ],
+    fields: [
+      { key: 'lot_id', label: 'Lot ID', type: 'text', required: true },
+      { key: 'material', label: 'Material', type: 'text' },
+      { key: 'reuse_cycle', label: 'Reuse Cycle', type: 'number' },
+      { key: 'virgin_blend_pct', label: 'Virgin Blend %', type: 'number' },
+      { key: 'moisture_ppm', label: 'Moisture ppm', type: 'number' },
+      { key: 'tensile_risk', label: 'Tensile Risk', type: 'select', options: ['low', 'medium', 'high'] },
+      { key: 'status', label: 'Status', type: 'text' },
+    ],
+  },
+  {
     key: 'print-parameters',
     name: 'Print Parameter Tuning',
     shortName: 'Parameter Tuning',
