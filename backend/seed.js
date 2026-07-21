@@ -1,6 +1,10 @@
 const pool = require('./db');
 const bcrypt = require('bcryptjs');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+const demoPassword = process.env.DEMO_PASSWORD;
+if (process.env.CONFIRM_DEMO_SEED !== 'YES' || process.env.NODE_ENV === 'production' || !demoPassword || demoPassword.length < 12) {
+  throw new Error('Demo seed requires CONFIRM_DEMO_SEED=YES, non-production NODE_ENV, and DEMO_PASSWORD of at least 12 characters');
+}
 
 async function seed() {
   const client = await pool.connect();
@@ -232,7 +236,7 @@ async function seed() {
     `);
 
     // Seed users
-    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'admin123', 10);
+    const hashedPassword = await bcrypt.hash(demoPassword, 10);
     await client.query(
       `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)`,
       ['Admin User', process.env.DEFAULT_EMAIL || 'admin@3dprint.com', hashedPassword]

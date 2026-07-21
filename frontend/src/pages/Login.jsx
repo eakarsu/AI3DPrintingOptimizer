@@ -9,18 +9,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleAutoFill = async () => {
-    try {
-      const res = await api.get('/auth/defaults');
-      setEmail(res.data.email);
-      setPassword(res.data.password);
-      toast.info('Credentials auto-filled');
-    } catch {
-      setEmail('admin@3dprint.com');
-      setPassword('admin123');
-    }
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -71,11 +59,6 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <div style={{ marginTop: '16px' }}>
-          <button onClick={handleAutoFill} className="btn btn-secondary btn-full">
-            Auto-Fill Demo Credentials
-          </button>
-        </div>
       </div>
     </div>
   );

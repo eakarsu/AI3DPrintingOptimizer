@@ -28,11 +28,11 @@ router.post('/login',
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { id: user.id, email: user.email, name: user.name, role: user.role || 'operator', tenantId: user.tenant_id },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role || 'operator', tenantId: user.tenant_id } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
