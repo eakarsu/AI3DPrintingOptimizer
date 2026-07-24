@@ -26,13 +26,14 @@ app.use(generalLimiter);
 // Keep generated/demo APIs out of the supported product boundary. They can be
 // inspected locally only through an explicit, non-production opt-in.
 app.use('/api', (req, res, next) => {
-  const supported = ['/auth', '/health', '/print-plan-workflows'];
+  const supported = ['/auth', '/health', '/print-plan-workflows', '/runtime-ai'];
   if (legacyPrototypeRoutesEnabled || supported.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))) return next();
   return res.status(410).json({ error: 'Legacy prototype route is quarantined', code: 'prototype_route_quarantined' });
 });
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/runtime-ai', require('./routes/runtimeAi'));
 app.use('/api/print-parameters', require('./routes/printParameters'));
 app.use('/api/failure-predictions', require('./routes/failurePredictions'));
 app.use('/api/material-selections', require('./routes/materialSelections'));

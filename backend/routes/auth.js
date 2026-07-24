@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { body, validationResult } = require('express-validator');
+const auth = require('../middleware/auth');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 
 // Login
@@ -38,6 +39,19 @@ router.post('/login',
   }
   }
 );
+
+router.get('/me', auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, name, role, tenant_id FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    if (!result.rowCount) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Unable to load identity' });
+  }
+});
 
 // NOTE: /defaults endpoint removed for security — never expose credentials via API
 
