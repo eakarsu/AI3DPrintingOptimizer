@@ -7,6 +7,17 @@ const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 
+router.get('/demo-credentials', (req, res) => {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEMO_CREDENTIAL_AUTOFILL === 'false') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  const email = process.env.PROVISION_ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+  const password = process.env.PROVISION_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+  if (!email || !password) return res.status(503).json({ error: 'Demo credentials unavailable' });
+  res.set('Cache-Control', 'no-store');
+  return res.json({ email, password });
+});
+
 // Login
 router.post('/login',
   [

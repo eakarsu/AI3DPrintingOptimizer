@@ -7,7 +7,21 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [filling, setFilling] = useState(false);
   const navigate = useNavigate();
+
+  const fillDemoCredentials = async () => {
+    setFilling(true);
+    try {
+      const res = await api.get('/auth/demo-credentials');
+      setEmail(res.data.email);
+      setPassword(res.data.password);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Demo credentials unavailable');
+    } finally {
+      setFilling(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -57,12 +71,12 @@ export default function Login() {
           </div>
           <button
             type="button"
-            onClick={() => { setEmail(import.meta.env.VITE_DEMO_EMAIL || ''); setPassword(import.meta.env.VITE_DEMO_PASSWORD || ''); }}
-            disabled={!import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD}
+            onClick={fillDemoCredentials}
+            disabled={filling}
             aria-label="Auto Fill Demo Credentials"
             style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
           >
-            Auto Fill Demo Credentials
+            {filling ? 'Loading Demo Credentials…' : 'Auto Fill Demo Credentials'}
           </button>
           <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
