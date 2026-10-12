@@ -91,6 +91,8 @@ if [ "${MIGRATE_ON_START:-false}" = true ]; then
   ./scripts/migrate.sh
 fi
 node backend/scripts/provision-runtime-admin.js
+node backend/scripts/native-powder-planning.cjs
+node backend/scripts/native-report-planning.cjs
 (cd backend && npm start) & backend_pid=$!
 (cd frontend && npm run dev -- --port "$FRONTEND_PORT" --host "$FRONTEND_HOST") & frontend_pid=$!
 cleanup(){ kill "$backend_pid" "$frontend_pid" 2>/dev/null || true; }; trap cleanup EXIT INT TERM

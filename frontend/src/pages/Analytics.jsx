@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -9,12 +9,12 @@ export default function Analytics() {
   const [consumption, setConsumption] = useState(null);
   const [matrix, setMatrix] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
       try {
-        setLoading(true);
+        setLoading(true); setLoadError('');
         const [ov, ut, co, mx] = await Promise.all([
           api.get('/analytics/fleet-overview'),
           api.get('/analytics/printer-utilization'),
@@ -26,13 +26,12 @@ export default function Analytics() {
         setConsumption(co.data);
         setMatrix(mx.data);
       } catch (err) {
-        console.error('Analytics load error:', err);
+        setLoadError(err.response?.data?.error || err.message || 'Analytics could not be loaded.');
       } finally {
         setLoading(false);
       }
-    };
-    fetchAll();
   }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   if (loading) {
     return (
@@ -42,6 +41,8 @@ export default function Analytics() {
       </div>
     );
   }
+
+  if (loadError) return <div role="alert" className="native-load-error"><h1>Analytics could not be loaded</h1><p>{loadError}</p><button type="button" className="btn btn-secondary" onClick={fetchAll}>Retry</button></div>;
 
   const tabs = [
     { key: 'overview', label: 'Fleet Overview' },

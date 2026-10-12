@@ -1,6 +1,7 @@
+import AIReport from './AIReport';
 import React from 'react';
 
-export default function DetailModal({ item, config, onClose, onEdit, onDelete }) {
+export default function DetailModal({ item, config, onClose, onEdit, onDelete, onAI }) {
   const formatValue = (key, value) => {
     if (value === null || value === undefined) return '-';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -37,11 +38,13 @@ export default function DetailModal({ item, config, onClose, onEdit, onDelete })
               </div>
             ))}
           </div>
+          {(item.ai_result||item.prediction_result)&&<AIReport response={item.ai_result||item.prediction_result} title={config.name+' · saved AI report'} model={item.ai_model_used}/>}
         </div>
         <div className="modal-footer">
+          {config.isAI&&onAI&&<button type="button" className="btn btn-primary btn-sm" onClick={()=>onAI(item)}>Generate native AI report</button>}
           <button className="btn btn-danger btn-sm" onClick={onDelete}>Delete</button>
           <button className="btn btn-primary btn-sm" onClick={onEdit}>Edit</button>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>

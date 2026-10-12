@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { FEATURES } from '../config/features';
@@ -9,41 +9,36 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const results = {};
-      for (const f of FEATURES) {
-        try {
-          const res = await api.get(f.apiPath, { params: { page: 1, limit: 1 } });
-          // Handle paginated { data, pagination } response
-          if (res.data?.pagination?.total !== undefined) {
-            results[f.key] = res.data.pagination.total;
-          } else if (Array.isArray(res.data)) {
-            results[f.key] = res.data.length;
-          } else {
-            results[f.key] = 0;
-          }
-        } catch {
-          results[f.key] = 0;
-        }
-      }
-      setCounts(results);
-    };
-
-    const fetchAnalytics = async () => {
-      try {
-        const res = await api.get('/analytics/fleet-overview');
-        setAnalytics(res.data);
-      } catch {
-        setAnalytics(null);
-      } finally {
-        setLoadingAnalytics(false);
-      }
-    };
-
-    fetchCounts();
-    fetchAnalytics();
+  const [countsLoading, setCountsLoading] = useState(true);
+  const [countsError, setCountsError] = useState('');
+  const [analyticsError, setAnalyticsError] = useState('');
+  const countsRequest = useRef(null), analyticsRequest = useRef(null);
+  const fetchCounts = useCallback(async () => {
+    countsRequest.current?.abort(); const controller = new AbortController(); countsRequest.current = controller;
+    setCountsLoading(true); setCountsError('');
+    try {
+      const values = await Promise.all(FEATURES.map(async (feature) => {
+        const res = await api.get(feature.apiPath, { params: { page: 1, limit: 1 }, signal: controller.signal });
+        const total = res.data?.pagination?.total ?? (Array.isArray(res.data) ? res.data.length : undefined);
+        if (total === undefined || total === null || !Number.isInteger(Number(total)) || Number(total) < 0) throw Error('The record service returned an invalid count.');
+        return [feature.key, Number(total)];
+      }));
+      if (countsRequest.current === controller && !controller.signal.aborted) setCounts(Object.fromEntries(values));
+    } catch (failure) {
+      if (countsRequest.current === controller && !controller.signal.aborted) setCountsError(failure.response?.data?.message || failure.message || 'Record totals could not be loaded.');
+    } finally { if (countsRequest.current === controller && !controller.signal.aborted) { countsRequest.current = null; setCountsLoading(false); } }
   }, []);
+  const fetchAnalytics = useCallback(async () => {
+    analyticsRequest.current?.abort(); const controller = new AbortController(); analyticsRequest.current = controller;
+    setLoadingAnalytics(true); setAnalyticsError('');
+    try {
+      const res = await api.get('/analytics/fleet-overview', { signal: controller.signal });
+      if (!res.data?.jobs || !res.data?.printers || !res.data?.quality || !res.data?.maintenance || !res.data?.ai_usage) throw Error('The analytics service returned an invalid overview.');
+      if (analyticsRequest.current === controller && !controller.signal.aborted) setAnalytics(res.data);
+    } catch (failure) { if (analyticsRequest.current === controller && !controller.signal.aborted) { setAnalytics(null); setAnalyticsError(failure.response?.data?.message || failure.message || 'Analytics could not be loaded.'); } }
+    finally { if (analyticsRequest.current === controller && !controller.signal.aborted) { analyticsRequest.current = null; setLoadingAnalytics(false); } }
+  }, []);
+  useEffect(() => { fetchCounts(); fetchAnalytics(); return () => { countsRequest.current?.abort(); analyticsRequest.current?.abort(); countsRequest.current = null; analyticsRequest.current = null; }; }, [fetchCounts, fetchAnalytics]);
 
   const totalItems = Object.values(counts).reduce((a, b) => a + b, 0);
   const aiFeatures = FEATURES.filter(f => f.isAI);
@@ -56,11 +51,13 @@ export default function Dashboard() {
         <p>AI-powered 3D printing optimization and fleet management</p>
       </div>
 
+      {countsError && <section role="alert" className="native-load-error"><strong>Record totals could not be loaded.</strong><p>{countsError}</p><button type="button" className="btn btn-secondary" onClick={fetchCounts}>Retry record totals</button></section>}
+      {analyticsError && <section role="alert" className="native-load-error"><strong>Fleet analytics could not be loaded.</strong><p>{analyticsError}</p><button type="button" className="btn btn-secondary" onClick={fetchAnalytics}>Retry fleet analytics</button></section>}
       {/* Key Metrics */}
       <div className="dashboard-stats">
         <div className="stat-card">
           <div className="stat-label">Total Records</div>
-          <div className="stat-value" style={{ color: 'var(--accent)' }}>{totalItems}</div>
+          <div className="stat-value" style={{ color: 'var(--accent)' }}>{countsLoading ? 'Loading…' : countsError ? 'Unavailable' : totalItems}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Active Print Jobs</div>
@@ -71,7 +68,7 @@ export default function Dashboard() {
         <div className="stat-card">
           <div className="stat-label">Success Rate</div>
           <div className="stat-value" style={{ color: 'var(--success)' }}>
-            {analytics?.jobs?.success_rate_pct ? `${analytics.jobs.success_rate_pct}%` : '—'}
+            {analytics?.jobs?.success_rate_pct !== undefined && analytics?.jobs?.success_rate_pct !== null ? `${analytics.jobs.success_rate_pct}%` : '—'}
           </div>
         </div>
         <div className="stat-card">
@@ -154,7 +151,7 @@ export default function Dashboard() {
             <p>{f.description}</p>
             <div className="feature-card-footer">
               <span className="feature-tag tag-ai">AI Powered</span>
-              <span className="feature-count">{counts[f.key] ?? '...'} records</span>
+              <span className="feature-count">{countsLoading ? 'Loading…' : countsError ? 'Unavailable' : `${counts[f.key]} records`}</span>
             </div>
           </div>
         ))}
@@ -171,7 +168,7 @@ export default function Dashboard() {
             <p>{f.description}</p>
             <div className="feature-card-footer">
               <span className="feature-tag tag-manage">Management</span>
-              <span className="feature-count">{counts[f.key] ?? '...'} records</span>
+              <span className="feature-count">{countsLoading ? 'Loading…' : countsError ? 'Unavailable' : `${counts[f.key]} records`}</span>
             </div>
           </div>
         ))}

@@ -26,7 +26,7 @@ app.use(generalLimiter);
 // Keep generated/demo APIs out of the supported product boundary. They can be
 // inspected locally only through an explicit, non-production opt-in.
 app.use('/api', (req, res, next) => {
-  const supported = ['/auth', '/health', '/print-plan-workflows', '/runtime-ai'];
+  const supported = ['/auth', '/health', '/print-plan-workflows', '/runtime-ai', '/report-workspace', '/powder-reuse-plan'];
   if (legacyPrototypeRoutesEnabled || supported.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))) return next();
   return res.status(410).json({ error: 'Legacy prototype route is quarantined', code: 'prototype_route_quarantined' });
 });
@@ -56,6 +56,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+
+// Advisory AI reports only; native execution and approval routes stay unchanged.
+const aiWorkspaceSupport = require("./aiWorkspaceAdapters.cjs");
+const aiWorkspaceDatabase = require("./db.js");
+app.use('/api/report-workspace', require("./aiWorkspace.cjs").createAIWorkspaceRouter({
+  pool: aiWorkspaceDatabase, authenticateToken: require("./middleware/auth.js"),
+  aiRateLimiter: aiWorkspaceSupport.createWorkspaceLimiter(), features: require("./aiWorkspaceFeatures.json"),
+}));
 app.listen(PORT, HOST, () => {
   console.log(`Backend server running at http://${HOST}:${PORT}`);
   console.log(`CORS enabled for: ${CLIENT_URL}`);

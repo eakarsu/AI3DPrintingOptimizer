@@ -29,6 +29,7 @@ function parseAIJson(text) {
  * @param {object} options - { temperature, maxTokens, model }
  */
 async function queryOpenRouter(systemPrompt, userMessage, options = {}) {
+  options.signal?.throwIfAborted();
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY is not configured');
 
@@ -49,6 +50,7 @@ async function queryOpenRouter(systemPrompt, userMessage, options = {}) {
   return new Promise((resolve, reject) => {
     const opts = {
       hostname: 'openrouter.ai',
+      signal: options.signal,
       path: '/api/v1/chat/completions',
       method: 'POST',
       headers: {
@@ -64,6 +66,7 @@ async function queryOpenRouter(systemPrompt, userMessage, options = {}) {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
+          options.signal?.throwIfAborted();
           const parsed = JSON.parse(data);
           if (parsed.error) {
             reject(new Error(parsed.error.message || 'OpenRouter API error'));
@@ -81,6 +84,7 @@ async function queryOpenRouter(systemPrompt, userMessage, options = {}) {
       });
     });
 
+    req.setTimeout(60000,()=>req.destroy(new Error('OpenRouter request timed out.')));
     req.on('error', reject);
     req.write(requestBody);
     req.end();

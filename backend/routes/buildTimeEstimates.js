@@ -1,5 +1,7 @@
+const persistNativeAI=require('../services/persistNativeAI');
 const express = require('express');
 const router = express.Router();
+router.use(require('../middleware/nativeAICancellation'));
 const pool = require('../db');
 const auth = require('../middleware/auth');
 const { queryOpenRouter, parseAIJson, DEFAULT_MODEL } = require('../services/openrouter');
@@ -173,11 +175,12 @@ router.post('/ai/estimate',
 - Material: ${material_type || 'PLA'}
 - Complexity: ${complexity || 'Medium'}`;
 
-      const aiResponse = await queryOpenRouter(systemPrompt, userMessage, { temperature: 0.15, maxTokens: 3000 });
+      const aiResponse = await queryOpenRouter(systemPrompt, userMessage, { signal: req.aiSignal, temperature: 0.15, maxTokens: 3000 });
       const estimate = parseAIJson(aiResponse.content) || { summary: aiResponse.content };
 
       // Persist to build_time_estimates
-      const dbResult = await pool.query(
+      const dbResult=await persistNativeAI(pool,req.aiSignal,async client=>{
+      const dbResult = await client.query(
         `INSERT INTO build_time_estimates
            (model_name, dimensions_x, dimensions_y, dimensions_z, layer_height, infill_density, print_speed, material_type, estimated_hours, complexity, ai_result, ai_model_used)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
@@ -198,11 +201,14 @@ router.post('/ai/estimate',
       );
 
       // Audit log
-      await pool.query(
+      await client.query(
         `INSERT INTO ai_results (endpoint, user_id, input_data, raw_response, parsed_result, model_used, tokens_used, success)
          VALUES ($1,$2,$3,$4,$5,$6,$7,true)`,
         ['/build-time-estimates/ai/estimate', req.user?.id, JSON.stringify(req.body), aiResponse.content, JSON.stringify(estimate), aiResponse.model || AI_MODEL, aiResponse.usage?.total_tokens || null]
       );
+      return dbResult;
+    });
+
 
       res.status(201).json({
         success: true,
@@ -212,6 +218,7 @@ router.post('/ai/estimate',
         usage: aiResponse.usage,
       });
     } catch (err) {
+      if(req.aiSignal?.aborted)return;
       res.status(500).json({ error: err.message });
     }
   }

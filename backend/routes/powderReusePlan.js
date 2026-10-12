@@ -1,16 +1,10 @@
-const express = require('express');
-
-const router = express.Router();
-
-router.get('/', (_req, res) => {
-  res.json({
-    data: [
-      { id: 1, lot_id: 'PA12-778', material: 'PA12', reuse_cycle: 4, virgin_blend_pct: 32, moisture_ppm: 410, tensile_risk: 'low', status: 'approved' },
-      { id: 2, lot_id: 'TPU-241', material: 'TPU', reuse_cycle: 6, virgin_blend_pct: 45, moisture_ppm: 760, tensile_risk: 'medium', status: 'drying required' },
-      { id: 3, lot_id: 'ALSI10-092', material: 'AlSi10Mg', reuse_cycle: 3, virgin_blend_pct: 25, moisture_ppm: 180, tensile_risk: 'low', status: 'approved' }
-    ],
-    pagination: { page: 1, limit: 20, total: 3, totalPages: 1 }
-  });
-});
-
-module.exports = router;
+const express=require('express'),pool=require('../db'),auth=require('../middleware/auth');const router=express.Router();
+router.use(auth);router.use((req,res,next)=>{req.tenantId=req.user?.tenantId||req.user?.tenant_id;if(!req.tenantId)return res.status(403).json({error:'Tenant claim required'});next();});
+const identity=req=>[req.user.id,req.tenantId];
+const validId=value=>/^[1-9][0-9]*$/.test(String(value));
+function fields(body){const lot=String(body.lot_id||'').trim();if(!lot||lot.length>255)throw Error('A planning lot label is required (maximum 255 characters).');const numeric=(key,max)=>{const value=body[key];if(value===null||value===undefined||value==='')return null;const n=Number(value);if(!Number.isFinite(n)||n<0||(max!==undefined&&n>max)||(key==='reuse_cycle'&&!Number.isInteger(n)))throw Error('Enter a valid '+key.replaceAll('_',' '));return n;};const risk=body.tensile_risk||'unknown',status=body.status||'draft';if(!['unknown','low','medium','high'].includes(risk)||!['draft','needs_review','cancelled'].includes(status))throw Error('Use a draft/review status. Powder approval requires a separate authorized evidence review.');return[lot,String(body.material||'').trim()||null,numeric('reuse_cycle'),numeric('virgin_blend_pct',100),numeric('moisture_ppm'),risk,status];}
+router.get('/',async(req,res)=>{try{const page=Math.max(1,parseInt(req.query.page)||1),limit=Math.min(100,Math.max(1,parseInt(req.query.limit)||20)),keys=identity(req);const total=Number((await pool.query('SELECT COUNT(*) AS count FROM powder_reuse_plans WHERE user_id=$1 AND tenant_id=$2',keys)).rows[0].count);const records=(await pool.query('SELECT * FROM powder_reuse_plans WHERE user_id=$1 AND tenant_id=$2 ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4',[...keys,limit,(page-1)*limit])).rows;res.json({data:records,pagination:{page,limit,total,totalPages:Math.ceil(total/limit)}});}catch(error){res.status(500).json({error:'Saved powder planning records could not be loaded',message:error.message});}});
+router.post('/',async(req,res)=>{let values;try{values=fields(req.body);}catch(error){return res.status(400).json({error:error.message});}try{const result=await pool.query('INSERT INTO powder_reuse_plans(user_id,tenant_id,lot_id,material,reuse_cycle,virgin_blend_pct,moisture_ppm,tensile_risk,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',[...identity(req),...values]);res.status(201).json(result.rows[0]);}catch(error){res.status(500).json({error:'The powder planning draft could not be saved'});}});
+router.put('/:id',async(req,res)=>{if(!validId(req.params.id))return res.status(400).json({error:'Valid draft ID required'});let values;try{values=fields(req.body);}catch(error){return res.status(400).json({error:error.message});}try{const result=await pool.query('UPDATE powder_reuse_plans SET lot_id=$4,material=$5,reuse_cycle=$6,virgin_blend_pct=$7,moisture_ppm=$8,tensile_risk=$9,status=$10,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND tenant_id=$3 RETURNING *',[req.params.id,...identity(req),...values]);if(!result.rows.length)return res.status(404).json({error:'Planning draft not found'});res.json(result.rows[0]);}catch(error){res.status(500).json({error:'The powder planning draft could not be updated'});}});
+router.delete('/:id',async(req,res)=>{if(!validId(req.params.id))return res.status(400).json({error:'Valid draft ID required'});try{const result=await pool.query("DELETE FROM powder_reuse_plans WHERE id=$1 AND user_id=$2 AND tenant_id=$3 AND status IN('draft','cancelled') RETURNING id",[req.params.id,...identity(req)]);if(!result.rows.length)return res.status(409).json({error:'Only your draft or cancelled powder plans can be deleted'});res.json({deleted:true});}catch(error){res.status(500).json({error:'The powder planning draft could not be deleted'});}});
+module.exports=router;

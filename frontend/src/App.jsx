@@ -8,6 +8,7 @@ import FeaturePage from './pages/FeaturePage';
 import Analytics from './pages/Analytics';
 import AIPrintingTools from './pages/AIPrintingTools';
 import CustomViewsPage from './pages/CustomViewsPage';
+import PrintPlans from './pages/PrintPlans';
 import Layout from './components/Layout';
 
 import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
@@ -25,9 +26,6 @@ export default function App() {
     <>
       <ToastContainer position="top-right" autoClose={3000} theme="dark" />
       <Routes>
-        <Route path="/insights/timeline" element={<TimelineView />} />
-        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
-        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
 
         <Route path="/login" element={<Login />} />
         <Route
@@ -39,8 +37,12 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="insights/timeline" element={<TimelineView />} />
+          <Route path="codex/custom-viz" element={<CodexCustomVizFeature />} />
+          <Route path="codex/operations" element={<CodexOperationsFeature />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="ai-printing-tools" element={<AIPrintingTools />} />
+          <Route path="print-plans" element={<PrintPlans />} />
           <Route path="custom-views" element={<CustomViewsPage />} />
           <Route path=":feature" element={<FeaturePage />} />
         </Route>

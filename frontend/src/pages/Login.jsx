@@ -3,47 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 
-function __demoAutofill() {
-  (async () => {
-    let email = "";
-    let password = "";
-    try {
-      const response = await fetch("/api/auth/demo-credentials", { cache: "no-store" });
-      if (response.ok) {
-        const data = await response.json();
-        email = data.email || data.username || "";
-        password = data.password || "";
-      }
-    } catch (error) {
-      /* fall back to build-time credentials below */
-    }
-    if (!email || !password) {
-      const env = (typeof process !== "undefined" && process.env) ? process.env : {};
-      email = email || env.REACT_APP_DEMO_EMAIL || env.VITE_DEMO_EMAIL || "";
-      password = password || env.REACT_APP_DEMO_PASSWORD || env.VITE_DEMO_PASSWORD || "";
-    }
-    const form = document.querySelector("form");
-    const setValue = (element, value) => {
-      if (!element) return;
-      const prototype = element.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-      const setter = Object.getOwnPropertyDescriptor(prototype, "value").set;
-      setter.call(element, value);
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-    };
-    const scope = form || document;
-    setValue(scope.querySelector('input[type="email"], input[name="email"], input[name="username"]') || scope.querySelectorAll("input")[0], email);
-    setValue(scope.querySelector('input[type="password"], input[name="password"]') || scope.querySelectorAll("input")[1], password);
-    window.setTimeout(() => {
-      if (form && typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-      } else {
-        const submit = scope.querySelector('button[type="submit"], input[type="submit"]');
-        if (submit) submit.click();
-      }
-    }, 50);
-  })();
-}
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,14 +10,25 @@ export default function Login() {
   const [filling, setFilling] = useState(false);
   const navigate = useNavigate();
 
-  const fillDemoCredentials = async () => {
+  const loginWithCredentials = async (credentials) => {
+    const res = await api.post('/auth/login', credentials);
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('user', JSON.stringify(res.data.user));
+    toast.success('Welcome back!');
+    navigate('/print-plans');
+  };
+
+  const handleDemoLogin = async () => {
+    if (filling || loading) return;
     setFilling(true);
     try {
       const res = await api.get('/auth/demo-credentials');
-      setEmail(res.data.email);
-      setPassword(res.data.password);
+      const credentials = { email: res.data.email, password: res.data.password };
+      setEmail(credentials.email);
+      setPassword(credentials.password);
+      await loginWithCredentials(credentials);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Demo credentials unavailable');
+      toast.error(err.response?.data?.error || 'Demo login unavailable');
     } finally {
       setFilling(false);
     }
@@ -68,11 +38,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      toast.success('Welcome back!');
-      navigate('/');
+      await loginWithCredentials({ email, password });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed');
     } finally {
@@ -112,11 +78,12 @@ export default function Login() {
           </div>
           <button
             type="button"
-            onClick={__demoAutofill}
-            aria-label="Auto Fill Demo Credentials"
+            onClick={handleDemoLogin}
+            disabled={filling || loading}
+            aria-label="Log In as Demo"
             style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
           >
-            {filling ? 'Loading Demo Credentials…' : 'Auto Fill Demo Credentials'}
+            {filling ? 'Loading Demo Credentials…' : 'Log In as Demo'}
           </button>
           <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}

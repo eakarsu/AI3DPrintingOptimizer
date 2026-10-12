@@ -1,3 +1,4 @@
+import AIReportLibrary from "./AIReportLibrary";
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -42,6 +43,16 @@ export default function Layout() {
         >
           <span className="icon">&#x1F4CA;</span>
           Analytics
+        </div>
+
+        <div
+          className={`sidebar-link ${location.pathname === '/print-plans' ? 'active' : ''}`}
+          onClick={() => navigate('/print-plans')}
+          data-testid="sidebar-print-plans"
+          style={{ margin: '0 12px' }}
+        >
+          <span className="icon">&#x1F4D0;</span>
+          Print Planning Drafts
         </div>
 
         <div
@@ -105,7 +116,7 @@ export default function Layout() {
             Sign Out
           </button>
         </div>
-      </aside>
+      <AIReportLibrary /></aside>
 
       <main className="main-content">
         <Outlet />
