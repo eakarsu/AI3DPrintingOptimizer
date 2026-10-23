@@ -7,7 +7,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [filling, setFilling] = useState(false);
+  const [demoError, setDemoError] = useState('');
   const navigate = useNavigate();
 
   const loginWithCredentials = async (credentials) => {
@@ -18,20 +18,16 @@ export default function Login() {
     navigate('/print-plans');
   };
 
-  const handleDemoLogin = async () => {
-    if (filling || loading) return;
-    setFilling(true);
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+  const fillDemoCredentials = async () => {
+    if (demoEmail && demoPassword) { setEmail(demoEmail); setPassword(demoPassword); return; }
     try {
-      const res = await api.get('/auth/demo-credentials');
-      const credentials = { email: res.data.email, password: res.data.password };
-      setEmail(credentials.email);
-      setPassword(credentials.password);
-      await loginWithCredentials(credentials);
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Demo login unavailable');
-    } finally {
-      setFilling(false);
-    }
+      const res = await fetch('/api/auth/demo-credentials', { cache: 'no-store' });
+      const data = await res.json();
+      if (data?.email && data?.password) { setEmail(data.email); setPassword(data.password); return; }
+    } catch {}
+    setDemoError("Demo credentials are not configured for this environment.");
   };
 
   const handleLogin = async (e) => {
@@ -77,14 +73,14 @@ export default function Login() {
             />
           </div>
           <button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={filling || loading}
-            aria-label="Log In as Demo"
-            style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
-          >
-            {filling ? 'Loading Demo Credentials…' : 'Log In as Demo'}
-          </button>
+              type="button"
+              onClick={fillDemoCredentials}
+              aria-label="Fill demo credentials"
+              style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
+            >
+              Fill demo credentials
+            </button>
+          {demoError && <p role="alert" style={{ marginBottom: '12px' }}>{demoError}</p>}
           <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

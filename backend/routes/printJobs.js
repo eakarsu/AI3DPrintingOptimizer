@@ -27,6 +27,8 @@ router.get('/', auth, async (req, res) => {
     const countParams = [];
     if (status) { conditions.push(`status = $${countParams.length + 1}`); countParams.push(status); }
     if (priority) { conditions.push(`priority = $${countParams.length + 1}`); countParams.push(priority); }
+    const search = (req.query.search || '').trim();
+    if (search) { conditions.push(`(job_name ILIKE $${countParams.length + 1} OR printer_name ILIKE $${countParams.length + 1} OR material_type ILIKE $${countParams.length + 1} OR file_name ILIKE $${countParams.length + 1})`); countParams.push(`%${search}%`); }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -43,6 +45,23 @@ router.get('/', auth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /export?format=csv|json - export filtered print jobs
+router.get('/export', auth, async (req, res) => {
+  try {
+    const status = req.query.status || null; const priority = req.query.priority || null;
+    const search = (req.query.search || '').trim();
+    const conditions = []; const params = [];
+    if (status) { conditions.push(`status = $${params.length + 1}`); params.push(status); }
+    if (priority) { conditions.push(`priority = $${params.length + 1}`); params.push(priority); }
+    if (search) { conditions.push(`(job_name ILIKE $${params.length + 1} OR printer_name ILIKE $${params.length + 1} OR material_type ILIKE $${params.length + 1} OR file_name ILIKE $${params.length + 1})`); params.push(`%${search}%`); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const result = await pool.query(`SELECT * FROM print_jobs ${where} ORDER BY created_at DESC LIMIT 1000`, params);
+    if ((req.query.format || 'csv') === 'json') return res.json({ data: result.rows });
+    res.setHeader('Content-Type', 'text/csv'); res.setHeader('Content-Disposition', 'attachment; filename="print-jobs.csv"');
+    res.send(require('../domain/taskPolicy').toCsv(result.rows));
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // GET by ID
